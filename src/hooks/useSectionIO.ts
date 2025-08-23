@@ -1,28 +1,32 @@
 // src/hooks/useSectionIO.ts
 'use client'
-import { useEffect } from 'react'
-import { Sel } from '@/lib/contract/selectors'
-import { emit } from '@/lib/anim/bus'
 
-export function useSectionIO(ref: React.RefObject<HTMLElement>, id: string) {
+import { useEffect, useRef } from 'react'
+import { bus, EV } from '@/lib/anim/bus'
+
+export function useSectionIO(id: string, rootMargin = '0px') {
+    const ref = useRef<HTMLElement | null>(null)
+
     useEffect(() => {
         const el = ref.current
         if (!el) return
-        el.classList.add(Sel.state.staged)
+        el.classList.add('stview')
 
-        const ob = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    el.classList.add(Sel.state.inview)
-                    emit({ type: 'view:enter', id })
+        const io = new IntersectionObserver((entries) => {
+            for (const e of entries) {
+                if (e.isIntersecting) {
+                    el.classList.add('inview')
+                    bus.emit(EV.ViewEnter, { id, el })
                 } else {
-                    el.classList.remove(Sel.state.inview)
-                    emit({ type: 'view:leave', id })
+                    el.classList.remove('inview')
+                    bus.emit(EV.ViewLeave, { id, el })
                 }
-            })
-        }, { threshold: [0, 1] })
+            }
+        }, { root: null, rootMargin, threshold: [0, 1] })
 
-        ob.observe(el)
-        return () => ob.disconnect()
-    }, [ref, id])
+        io.observe(el)
+        return () => io.disconnect()
+    }, [id, rootMargin])
+
+    return ref
 }

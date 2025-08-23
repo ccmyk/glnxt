@@ -1,4 +1,4 @@
-// src/components/GL/BackgroundCanvas.tsx
+// src/components/gl/BackgroundCanvas.tsx
 'use client'
 import React, { useEffect, useRef } from 'react'
 import { initBackgroundGL, destroyGL } from '@/lib/gl/bgRuntime'

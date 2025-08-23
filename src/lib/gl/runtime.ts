@@ -1,20 +1,22 @@
 // src/lib/gl/runtime.ts
-let raf = 0
-let running = false
-type Tickable = { update?(t: number): void }
-const tickers = new Set<Tickable>()
+type TickFn = (t: number, dt: number) => void
 
-export function addTicker(t: Tickable) { tickers.add(t) }
-export function removeTicker(t: Tickable) { tickers.delete(t) }
+class Runtime {
+    private subs = new Set<TickFn>()
+    private raf = 0
+    private last = 0
 
-function loop(t: number) {
-    tickers.forEach(x => x.update?.(t))
-    raf = requestAnimationFrame(loop)
+    start() {
+        if (this.raf) return
+        const loop = (t: number) => {
+            const dt = this.last ? (t - this.last) / 1000 : 0
+            this.last = t
+            this.subs.forEach(fn => fn(t, dt))
+            this.raf = requestAnimationFrame(loop)
+        }
+        this.raf = requestAnimationFrame(loop)
+    }
+    stop() { cancelAnimationFrame(this.raf); this.raf = 0; this.last = 0 }
+    add(fn: TickFn) { this.subs.add(fn); return () => this.subs.delete(fn) }
 }
-
-export function start() {
-    if (!running) { running = true; raf = requestAnimationFrame(loop) }
-}
-export function stop() {
-    running = false; cancelAnimationFrame(raf)
-}
+export const glRuntime = new Runtime()

@@ -1,4 +1,4 @@
-// src/components/GL/GLLoaderCanvas.tsx
+// src/components/gl/GLLoaderCanvas.tsx
 'use client'
 import React, { useEffect, useRef } from 'react'
 import { initLoaderGL } from '@/lib/gl/loaderRuntime'

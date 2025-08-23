@@ -1,4 +1,4 @@
-// src/components/GL/GLProvider.tsx
+// src/components/gl/GLProvider.tsx
 'use client'
 
 import { createContext, useContext, useEffect, useRef } from 'react'
@@ -18,7 +18,7 @@ export function useGL() {
 }
 
 /**
- * Single RAF fan-out. Calls active GL canvas subscribers each frame.
+ * Single RAF fan-out. Calls active gl canvas subscribers each frame.
  */
 export function GLProvider({ children }: { children: React.ReactNode }) {
     const getActive = useGLStore((s) => s.getActiveSubscribers)

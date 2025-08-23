@@ -3,5 +3,5 @@
 @import '../styles/layout.css';
 
 /* Later, bring in legacy:
-@import '../styles/legacy/full-import.css';
+@import '../styles/legacy/legacy-index.css';
 */
