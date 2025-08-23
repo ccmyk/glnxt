@@ -1,73 +1,62 @@
-# --- Node / package managers ---
+# Node / package managers
 node_modules/
-pnpm-debug.log*
-!pnpm-lock.yaml
+.pnp.*
+.pnpm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
 
-# --- Next.js build / cache ---
+# Next.js
 .next/
+.next-static/
 out/
-.next/static/
-.next/cache/
+.vercel/
+.next/types/
+
+# Build artifacts
 dist/
 build/
-
-# --- Tests / coverage ---
 coverage/
-.nyc_output/
+*.log
+*.tsbuildinfo
 
-# --- Environment files ---
+# Env
 .env
-.env.*.local
-.env.local
+.env.*
 !.env.example
 
-# --- Editor / OS detritus ---
+# OS
 .DS_Store
 Thumbs.db
 
-# --- WebStorm / JetBrains ---
-# ignore all .idea by default...
-.idea/*
+# Editor (WebStorm/JetBrains)
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/httpRequests
+.idea/**/dataSources/
+.idea/**/dataSources.local.xml
+.idea/**/usage.statistics.xml
 
-# ...but keep shared, intentional project settings:
-!.idea/inspectionProfiles/
+# keep project profile + scopes (we’re using them)
+!.idea/inspectionProfiles
 !.idea/inspectionProfiles/Project_Default.xml
-!.idea/codeStyles/
-!.idea/codeStyles/Project.xml
-!.idea/modules.xml
 !.idea/glnxt.iml
+!.idea/modules.xml
 !.idea/vcs.xml
 
-# ignore user-local state
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/httpRequests/
-.idea/shelf/
-.idea/caches/
-.idea/sonarlint/
-.idea/.gitignore
+# Local tools & caches
+*.swp
+*.swo
+*.orig
+*.patch
+*.local.*
+cache/
+.temp/
+.tmp/
 
-# --- VS Code  ---
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-
-# --- ESLint / tooling caches ---
-.eslintcache
-.stylelintcache
-.turbo/
-.vercel/
-
-# --- Storybook  ---
-.storybook-out/
-storybook-static/
-
-# --- AI / docs build artifacts ---
-ai-bundle.tgz
-*.tgz
-
-# --- Misc build artifacts ---
-*.log
-*.pid
-*.seed
-*.tsbuildinfo
+# Images/textures (generated or large)
+public/_cache/**
+public/_generated/**

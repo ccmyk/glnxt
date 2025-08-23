@@ -11,11 +11,6 @@ type IOArgs = {
     onLeave?: (entry: IntersectionObserverEntry) => void
 }
 
-/**
- * IntersectionObserver wrapper that matches your vanilla patterns:
- * - thresholds default to [0, 1]
- * - emits enter/leave with state classes handled upstream
- */
 export function useIO({
                           root = null,
                           threshold = [0, 1],

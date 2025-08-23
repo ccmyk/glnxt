@@ -5,6 +5,8 @@ import React, { useRef } from 'react'
 import { useInViewClass } from '@/hooks/useInViewClass'
 import SplitTextNode from '@/components/text/SplitTextNode'
 import { GLCanvas } from '@/components/GL/GLCanvas' // your OGL overlay (per-section)
+import { resolveLabel } from '@/lib/gsap/manifest'
+import { gsap } from '@/lib/gsap/gsap'
 
 function IOProbe({ id, className = 'iO iO-std' }: { id: number; className?: string }) {
     // This just renders the sentinel div the CSS and IO bus expect.

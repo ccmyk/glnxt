@@ -23,3 +23,15 @@ export const on = {
             document.removeEventListener('anim:leave', handler as EventListener)
     },
 }
+
+type AnimDetail = { el?: Element | null; state?: number; style?: number; params?: number[] }
+
+export function dispatchAnim(type: string, detail: AnimDetail = {}) {
+    window.dispatchEvent(new CustomEvent(`anim:${type}`, { detail }))
+}
+
+export function onAnim(type: string, handler: (e: CustomEvent<AnimDetail>) => void) {
+    const fn = handler as EventListener
+    window.addEventListener(`anim:${type}`, fn as EventListener)
+    return () => window.removeEventListener(`anim:${type}`, fn)
+}
