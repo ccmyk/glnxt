@@ -1,0 +1,8 @@
+/* src/styles/base.css */
+/* Base tokens & resets that won't fight legacy CSS */
+:root {
+    --pgrid: 0; /* will be set by legacy CSS */
+}
+html, body {
+    height: 100%;
+}
