@@ -10,7 +10,9 @@
     "lint": "next lint",
     "analyze": "ANALYZE=true next build",
     "ai:print": "bash docs/ai/scripts/print-ai.sh",
-    "ai:pack": "bash docs/ai/scripts/pack-ai.sh"
+    "ai:pack": "bash docs/ai/scripts/pack-ai.sh",
+    "msdf:gen": "pnpm dlx msdf-bmfont-xml -f json -o public/fonts/msdf/PPNeueMontreal-Medium -i public/fonts/charset.txt -m 1024,1024 -r 4 --smart-size --pot public/fonts/src/PPNeueMontreal-Medium.ttf",
+    "msdf:verify": "node -e \"const fs=require('fs');['./public/fonts/msdf/PPNeueMontreal-Medium.png','./public/fonts/msdf/PPNeueMontreal-Medium.json'].forEach(p=>{if(!fs.existsSync(p)) {console.error('Missing',p);process.exit(1)}});console.log('MSDF assets OK')\""
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -35,6 +37,8 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9.34.0",
     "eslint-config-next": "15.4.7",
+    "msdf-bmfont": "^1.1.0",
+    "msdf-bmfont-xml": "^2.7.0",
     "postcss": "^8.5.6",
     "postcss-cli": "^11.0.1",
     "postcss-import": "^16.1.1",

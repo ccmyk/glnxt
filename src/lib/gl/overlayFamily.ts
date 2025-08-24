@@ -2,6 +2,8 @@
 import { Renderer, Camera, Transform, Program, Mesh, Geometry, Texture } from 'ogl'
 import { tweenUniform } from '@/lib/anim/spatialTimelines'
 import { glRuntime } from './runtime'
+import type { GLOverlayFactory } from './registry'
+import { createTT } from './families/tt'
 
 export type Overlay = {
     mount(cvs: HTMLCanvasElement): void
@@ -9,6 +11,17 @@ export type Overlay = {
     show(): void
     hide(): void
     dispose(): void
+}
+
+export const overlayFamily: GLOverlayFactory = (gl, key, opts) => {
+    const [family] = key.split(':')
+    switch (family) {
+        case 'tt':
+            return createTT(gl, opts as any)
+        // ...existing families: default, slider, roll, etc.
+        default:
+            return null
+    }
 }
 
 export function createTextOverlay(): Overlay {
