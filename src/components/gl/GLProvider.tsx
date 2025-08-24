@@ -1,15 +1,21 @@
 // src/components/gl/GLProvider.tsx
 'use client'
 
-import { createContext, useContext, useEffect, useRef } from 'react'
-import { useAppStore } from '@/stores/appStore'
-import { useGLStore } from '@/stores/glStore'
+import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 
-type GLContextValue = {
-    // reserved for future per-frame uniforms, time, etc.
+export type GLScene = {
+    id: string
+    render: (dt: number) => void
+    setActive?: (active: boolean) => void
+    dispose?: () => void
 }
 
-const GLContext = createContext<GLContextValue | null>(null)
+type Ctx = {
+    register: (s: GLScene) => void
+    unregister: (id: string) => void
+}
+
+const GLContext = createContext<Ctx | null>(null)
 
 export function useGL() {
     const ctx = useContext(GLContext)
@@ -17,44 +23,58 @@ export function useGL() {
     return ctx
 }
 
-/**
- * Single RAF fan-out. Calls active gl canvas subscribers each frame.
- */
-export function GLProvider({ children }: { children: React.ReactNode }) {
-    const getActive = useGLStore((s) => s.getActiveSubscribers)
-    const setViewport = useAppStore((s) => s.setViewport)
-    const rafRef = useRef<number | null>(null)
-    const timeRef = useRef({ last: performance.now() })
+export default function GLProvider({ children }: { children: React.ReactNode }) {
+    const scenes = useRef<Map<string, GLScene>>(new Map())
+    const running = useRef(false)
+    const rafId = useRef<number | null>(null)
+    const last = useRef<number>(0)
+
+    const loop = (t: number) => {
+        rafId.current = requestAnimationFrame(loop)
+        const dt = last.current ? (t - last.current) / 1000 : 0
+        last.current = t
+        // render all registered scenes (they can internally no-op if not active)
+        scenes.current.forEach((s) => s.render(dt))
+    }
+
+    const start = () => {
+        if (running.current) return
+        running.current = true
+        last.current = 0
+        rafId.current = requestAnimationFrame(loop)
+    }
+
+    const stop = () => {
+        if (!running.current) return
+        running.current = false
+        if (rafId.current != null) cancelAnimationFrame(rafId.current)
+        rafId.current = null
+    }
 
     useEffect(() => {
-        // viewport + DPR tracking (no layout thrash)
-        const ro = new ResizeObserver((entries) => {
-            const e = entries[0]
-            if (!e) return
-            const dpr = Math.min(window.devicePixelRatio || 1, 2)
-            setViewport({
-                w: Math.round(e.contentRect.width),
-                h: Math.round(e.contentRect.height),
-                dpr,
-            })
-        })
-        ro.observe(document.documentElement)
-        return () => ro.disconnect()
-    }, [setViewport])
-
-    useEffect(() => {
-        const loop = (now: number) => {
-            const dt = (now - timeRef.current.last) / 1000
-            timeRef.current.last = now
-            const subs = getActive()
-            for (let i = 0; i < subs.length; i++) subs[i](now / 1000, dt)
-            rafRef.current = requestAnimationFrame(loop)
-        }
-        rafRef.current = requestAnimationFrame(loop)
+        // Start RAF as soon as provider mounts (keeps timing consistent)
+        start()
         return () => {
-            if (rafRef.current) cancelAnimationFrame(rafRef.current)
+            stop()
+            scenes.current.forEach((s) => s.dispose?.())
+            scenes.current.clear()
         }
-    }, [getActive])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
-    return <GLContext.Provider value={{}}>{children}</GLContext.Provider>
+    const value = useMemo<Ctx>(
+        () => ({
+            register: (s) => {
+                scenes.current.set(s.id, s)
+            },
+            unregister: (id) => {
+                const s = scenes.current.get(id)
+                s?.dispose?.()
+                scenes.current.delete(id)
+            },
+        }),
+        []
+    )
+
+    return <GLContext.Provider value={value}>{children}</GLContext.Provider>
 }

@@ -40,7 +40,7 @@ Thumbs.db
 .idea/**/dataSources.local.xml
 .idea/**/usage.statistics.xml
 
-# keep project profile + scopes (we’re using them)
+# keep error profile + scopes (we’re using them)
 !.idea/inspectionProfiles
 !.idea/inspectionProfiles/Project_Default.xml
 !.idea/glnxt.iml

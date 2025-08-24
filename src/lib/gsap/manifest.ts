@@ -1,17 +1,38 @@
 // src/lib/gsap/manifest.ts
+'use client'
+
 import manifest from './gsap-manifest.json'
 
-export type TimelineSpec = typeof manifest.timelines[keyof typeof manifest.timelines]
+type Profiles = typeof manifest.profiles
+export type ProfileName = keyof Profiles
 
-export function resolveLabel(label: string): { kind: 'timeline', spec: TimelineSpec } | { kind: 'profile', name: string, values: number[] } {
-    const ref = (manifest.labels as Record<string, string>)[label]
-    if (!ref) throw new Error(`Unknown label: ${label}`)
+export type TimelineSpec = {
+  profile?: ProfileName
+  targets: string              // e.g. ".char .n"
+  from?: Record<string, any>
+  to?: Record<string, any>
+  stagger?: number
+  ease?: string
+}
 
-    const tl = (manifest.timelines as Record<string, TimelineSpec>)[ref]
-    if (tl) return { kind: 'timeline', spec: tl }
+export type ResolveResult =
+  | { kind: 'timeline'; spec: TimelineSpec }
+  | { kind: 'profile'; values: number[] }
 
-    const prof = (manifest.profiles as Record<string, number[]>)[ref]
-    if (prof) return { kind: 'profile', name: ref, values: prof }
+export function profile(name: ProfileName): number[] {
+  const p = manifest.profiles[name]
+  if (!p) throw new Error(`Unknown profile: ${String(name)}`)
+  return p
+}
 
-    throw new Error(`Label '${label}' maps to neither timeline nor profile: ${ref}`)
+export function resolveLabel(label: string): ResolveResult {
+  // 1) Try full timeline spec first (if you keep "timelines": { ... })
+  const tl = (manifest as any).timelines?.[label]
+  if (tl) return { kind: 'timeline', spec: tl as TimelineSpec }
+
+  // 2) Fallback to labels → profile lookup
+  const profName = (manifest as any).labels?.[label] as ProfileName | undefined
+  if (profName) return { kind: 'profile', values: profile(profName) }
+
+  throw new Error(`No timeline or profile mapping for label "${label}"`)
 }
