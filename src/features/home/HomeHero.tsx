@@ -8,6 +8,7 @@ import { GLCanvas } from '@/components/gl/GLCanvas'
 import { resolveLabel } from '@/lib/gsap/manifest'
 import { gsap } from '@/lib/gsap/gsap'
 import { dispatchAnim } from '@/lib/events'
+import { createTT_WGL2 } from '@/lib/gl/overlayFamily';
 
 function IOProbe({ id, className = 'iO iO-std' }: { id: number; className?: string }) {
     return <div className={className} data-io={id} style={{ visibility: 'visible' }} />
@@ -17,7 +18,13 @@ function Atitle({ text, oi, innerRef }: { text: string; oi: number; innerRef?: R
     return (
         <div className="Atitle" ref={innerRef}>
             <div className="cCover">
-                <GLCanvas className="glOverlay" />
+                <GLCanvas
+                    className="glOverlay"
+                    onCreate={async (gl, size) => {
+                        const ctx = gl as WebGL2RenderingContext;
+                        return await createTT_WGL2(ctx, size, text);
+                    }}
+                />
             </div>
             <div
                 className="Oi Oi-tt"

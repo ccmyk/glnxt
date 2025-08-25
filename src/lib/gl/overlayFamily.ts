@@ -4,6 +4,8 @@ import { tweenUniform } from '@/lib/anim/spatialTimelines'
 import { glRuntime } from './runtime'
 import type { GLOverlayFactory } from './registry'
 import { createTT } from './families/tt'
+import { MsdfTextTT } from './text/MsdfTextTT';
+import { loadMsdf } from '../loadMsdf'
 
 export type Overlay = {
     mount(cvs: HTMLCanvasElement): void
@@ -71,16 +73,47 @@ export function createTextOverlay(): Overlay {
     }
 }
 
-// minimal shaders (replace with your family shaders)
-const VERT = /* glsl */`
-attribute vec2 position; attribute vec2 uv; varying vec2 vUv;
-void main(){ vUv = uv; gl_Position = vec4(position, 0.0, 1.0); }
-`
-const FRAG = /* glsl */`
-precision highp float; varying vec2 vUv;
-uniform float uTime; uniform float uPower;
-void main(){
-  float vignette = smoothstep(0.8, 0.2, length(vUv - 0.5));
-  gl_FragColor = vec4(vec3(vignette) * uPower, 1.0);
+export async function createTT_WGL2(
+    gl: WebGL2RenderingContext,
+    size: [number, number],
+    text: string
+) {
+    const base = '/fonts/msdf/PPNeueMontreal-Medium/PPNeueMontreal-Medium';
+    const { image, metrics } = await loadMsdf(base);
+
+    const tt = new MsdfTextTT({
+        gl,
+        atlasImage: image,
+        atlasMeta: metrics,
+        text,
+        color: 0.0,         // black (float) as your shader expects
+        cols: 5.0,
+        screen: size,
+    });
+
+    return {
+        camera: tt.camera,
+        scene: tt.scene,
+        render: (dt: number) => {
+            tt.setTime((tt.uTime + dt) % 100000);
+            tt.render(gl);
+        },
+        api: tt, // expose to set uKey/uStart/uPowers from GSAP/IO
+        dispose: () => tt.dispose(),
+    };
 }
-`
+
+
+// minimal shaders (replace with your family shaders)
+// const VERT = /* glsl */`
+// attribute vec2 position; attribute vec2 uv; varying vec2 vUv;
+// void main(){ vUv = uv; gl_Position = vec4(position, 0.0, 1.0); }
+// `
+// const FRAG = /* glsl */`
+// precision highp float; varying vec2 vUv;
+// uniform float uTime; uniform float uPower;
+// void main(){
+//   float vignette = smoothstep(0.8, 0.2, length(vUv - 0.5));
+//   gl_FragColor = vec4(vec3(vignette) * uPower, 1.0);
+// }
+// `
