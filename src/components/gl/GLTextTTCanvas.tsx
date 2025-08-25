@@ -1,68 +1,119 @@
 // src/components/gl/GLTextTTCanvas.tsx
-'use client'
-import React, { useEffect, useRef, useState } from 'react'
-import { useGL } from './GLProvider'
-import { Renderer } from 'ogl'
-import { createTT } from '@/lib/gl/families/tt'
-import { useResize } from '@/hooks/useResize'
-import { useMouse } from '@/components/providers/MouseProvider'
 
-export default function GLTextTTCanvas({ atlasURL }: { atlasURL?: string }){
-    const hostRef = useRef<HTMLDivElement>(null)
+//    Minimal per-section canvas that mounts MsdfTextTT with your atlas.
+//    Single RAF (local for this canvas); pauses offscreen via useSectionIO.
+
+'use client'
+
+import React, { useEffect, useRef, useState } from 'react'
+import { Renderer } from 'ogl'
+import { MsdfTextTT } from '@/lib/gl/text/MsdfTextTT'
+import { useSectionIO } from '@/hooks/useSectionIO'
+import { emit } from '@/lib/anim/bus'
+
+type Props = {
+    text: string
+    atlasBase?: string // default: /fonts/msdf/PPNeueMontreal-Medium
+    className?: string
+    id: string         // bus/view id (e.g., 'home.hero.tt[0]')
+}
+
+export default function GLTextTTCanvas({ text, atlasBase = '/fonts/msdf/PPNeueMontreal-Medium', className = 'glOverlay', id }: Props) {
+    const ref = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const { width, height } = useResize(hostRef)
-    const { nx, ny } = useMouse()
-    const { register, unregister } = useGL()
-    const [active, setActive] = useState(true)
+    const rafRef = useRef<number>()
+    const oglRef = useRef<{ renderer: Renderer; scene: MsdfTextTT } | null>(null)
+    const [active, setActive] = useState(false)
+
+    // IO: toggles active state + emits enter/leave to the bus
+    useSectionIO(ref as any, { id, threshold: [0, 1] })
 
     useEffect(() => {
-        const host = hostRef.current
-        const canvas = canvasRef.current
-        if (!host || !canvas) return
+        const holder = ref.current
+        if (!holder) return
 
-        const renderer = new Renderer({ canvas, dpr: Math.min(devicePixelRatio, 2) })
-        const gl = renderer.gl as WebGLRenderingContext
-        gl.clearColor(0,0,0,0)
+        const canvas = document.createElement('canvas')
+        canvasRef.current = canvas
+        canvas.className = className || 'glOverlay'
+        holder.appendChild(canvas)
 
-        const tt = createTT(gl, { atlasURL })
+        const gl = (canvas.getContext('webgl2', { alpha: true, antialias: true }) ||
+            canvas.getContext('webgl',   { alpha: true, antialias: true })) as WebGL2RenderingContext
+        const renderer = new Renderer({ gl, dpr: Math.min(2, window.devicePixelRatio || 1) })
 
-        const setSize = () => {
-            const r = host.getBoundingClientRect()
-            const w = Math.max(1, r.width|0), h = Math.max(1, r.height|0)
-            renderer.setSize(w, h)
-            tt.resize(w, h)
-        }
-        setSize()
+        const img = new Image()
+        img.src = `${atlasBase}.png`
+        let canceled = false
 
-        const id = `tt-${Math.random().toString(36).slice(2)}`
-        register({
-            id,
-            render: (dt) => {
+        const load = async () => {
+            const res = await fetch(`${atlasBase}.json`)
+            const meta = await res.json()
+
+            await new Promise<void>((resv, rej) => {
+                img.onload = () => resv()
+                img.onerror = (e) => rej(e)
+            })
+            if (canceled) return
+
+            const scene = new MsdfTextTT({
+                gl: gl as WebGL2RenderingContext,
+                atlasImage: img,
+                atlasMeta: meta,
+                text,
+                color: 0.0,
+                cols: 5,
+                screen: [holder.clientWidth, holder.clientHeight],
+            })
+
+            oglRef.current = { renderer, scene }
+            emit({ type: 'gl:ready', id, el: holder })
+
+            const ro = new ResizeObserver(() => {
+                size()
+            })
+            ro.observe(holder)
+
+            function size() {
+                const w = holder.clientWidth
+                const h = holder.clientHeight
+                renderer.setSize(w, h)
+                scene.setSize(w, h)
+            }
+            size()
+
+            const loop = (t: number) => {
+                rafRef.current = requestAnimationFrame(loop)
                 if (!active) return
-                tt.setMouse(nx, ny)
-                tt.render(dt)
-                renderer.render({ scene: tt.scene, camera: tt.camera })
-            },
-            dispose: () => tt.dispose()
+                scene.update(t)
+                renderer.render({ scene: scene.scene, camera: scene.camera })
+            }
+            rafRef.current = requestAnimationFrame(loop)
+
+            return () => {
+                ro.disconnect()
+            }
+        }
+
+        load()
+
+        // Observe class changes to derive active state (.inview = active)
+        const mo = new MutationObserver(() => {
+            const isActive = holder.classList.contains('inview')
+            setActive(isActive)
         })
-
-        const io = new IntersectionObserver((es)=>setActive(es[0]?.isIntersecting ?? true), { threshold:[0,0.2,1] })
-        io.observe(host)
-
-        const onResize = () => setSize()
-        window.addEventListener('resize', onResize)
-
-        // default “enter” ramp for first paint (can be bus-driven later)
-        tt.enter()
+        mo.observe(holder, { attributes: true, attributeFilter: ['class'] })
 
         return () => {
-            window.removeEventListener('resize', onResize)
-            io.disconnect()
-            unregister(id)
+            canceled = true
+            mo.disconnect()
+            if (rafRef.current) cancelAnimationFrame(rafRef.current)
+            if (oglRef.current) {
+                oglRef.current.scene.dispose()
+                // renderer will GC with canvas removal
+            }
+            canvas.remove()
         }
-    }, [register, unregister, nx, ny, atlasURL, active])
+    }, [text, atlasBase, className, id, active])
 
-    // width/height hook will call resize; nothing needed here
-
-    return <div className="glOverlay" ref={hostRef}><canvas ref={canvasRef} /></div>
+    return <div ref={ref} className="cCover" />
 }

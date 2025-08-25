@@ -1,42 +1,48 @@
 // src/hooks/useSectionIO.ts
+
+// One IO hook: toggles .stview/.inview AND emits via the central bus.
+// This replaces useInViewClass/useIO duplication.
+// (Preserves your CSS contract: .stview/.inview/.act etc.)
+
 'use client'
+import { useEffect } from 'react'
+import { emit } from '@/lib/anim/bus'
 
-import { useEffect, useRef } from 'react'
-import { dispatchAnim } from '@/lib/events'
+type Options = IntersectionObserverInit & {
+    id: string
+}
 
-type Options = IntersectionObserverInit & { once?: boolean; id?: string }
-
-export function useSectionIO<T extends Element>(
-    ref: React.RefObject<T>,
-    { threshold = [0, 0.5, 1], root = null, rootMargin = '0px', once = false, id }: Options = {}
-) {
-    const seen = useRef(false)
-
+export function useSectionIO(ref: React.RefObject<HTMLElement>, opts: Options) {
     useEffect(() => {
         const el = ref.current
         if (!el) return
+
+        // Stage immediately (matches vanilla flow)
+        el.classList.add('stview')
+
+        const {
+            root = null,
+            rootMargin = '0px',
+            threshold = [0, 1],
+            id,
+        } = opts
+
         const io = new IntersectionObserver(
             (entries) => {
-                for (const e of entries) {
-                    if (e.isIntersecting) {
-                        if (!seen.current) {
-                            el.classList.add('stview')
-                            seen.current = true
-                        }
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
                         el.classList.add('inview')
-                        dispatchAnim('view.enter', { el, state: 1, params: [], style: 0 })
-                        if (id) dispatchAnim(`${id}.enter`, { el, state: 1 })
-                        if (once) io.unobserve(el)
+                        emit({ type: 'view:enter', id, el })
                     } else {
                         el.classList.remove('inview')
-                        dispatchAnim('view.leave', { el, state: 0, params: [], style: 0 })
-                        if (id) dispatchAnim(`${id}.leave`, { el, state: 0 })
+                        emit({ type: 'view:leave', id, el })
                     }
                 }
             },
-            { threshold, root, rootMargin }
+            { root, rootMargin, threshold }
         )
+
         io.observe(el)
         return () => io.disconnect()
-    }, [ref, threshold, root, rootMargin, once, id])
+    }, [ref, opts])
 }

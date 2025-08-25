@@ -1,5 +1,8 @@
 // src/lib/anim/bus.ts
 
+// Single orchestration bus (no window soup, no duplicates).
+// Sections emit view enter/leave; systems can listen centrally.
+
 // use everywhere instead of window events
 type Payload = Record<string, unknown>;
 type Handler<T extends Payload> = (p: T) => void;

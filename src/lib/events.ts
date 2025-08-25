@@ -1,4 +1,5 @@
 // src/lib/events.ts
+'use client'
 export type AnimEnterDetail = { el: Element; id?: string }
 export type AnimLeaveDetail = { el: Element; id?: string }
 type AnimDetail = { el?: Element | null; state?: number; style?: number; params?: number[] }
