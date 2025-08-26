@@ -1,59 +1,40 @@
 // src/hooks/useIO.ts
 'use client'
+import { useEffect, useRef } from 'react'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+type Options = IntersectionObserverInit & { once?: boolean };
 
-type IOArgs = {
-    root?: Element | null
-    threshold?: number[] | number
-    once?: boolean
-    onEnter?: (entry: IntersectionObserverEntry) => void
-    onLeave?: (entry: IntersectionObserverEntry) => void
-}
-
-export function useIO({
-                          root = null,
-                          threshold = [0, 1],
-                          once = false,
-                          onEnter,
-                          onLeave,
-                      }: IOArgs = {}) {
-    const [inView, setInView] = useState(false)
-    const targetRef = useRef<Element | null>(null)
-    const seenRef = useRef(false)
-
-    const setRef = useCallback((el: Element | null) => {
-        targetRef.current = el
-    }, [])
+export function useIO<T extends Element>(
+    ref: React.RefObject<T>,
+    { threshold = [0, 1], root = null, rootMargin = '0px', once = false }: Options = {}
+) {
+    const hasEnteredRef = useRef(false);
 
     useEffect(() => {
-        const el = targetRef.current
-        if (!el) return
+        const el = ref.current;
+        if (!el) return;
 
-        const th = Array.isArray(threshold) ? threshold : [threshold]
-        const io = new IntersectionObserver(
+        const observer = new IntersectionObserver(
             (entries) => {
-                entries.forEach((entry) => {
-                    const isIntersecting = entry.isIntersecting
-                    if (isIntersecting) {
-                        if (!seenRef.current) onEnter?.(entry)
-                        setInView(true)
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        el.classList.add('inview');
+                        if (!hasEnteredRef.current) {
+                            hasEnteredRef.current = true;
+                            el.classList.add('stview');
+                        }
                         if (once) {
-                            seenRef.current = true
-                            io.unobserve(entry.target)
+                            observer.unobserve(el);
                         }
                     } else {
-                        setInView(false)
-                        onLeave?.(entry)
+                        el.classList.remove('inview');
                     }
-                })
+                }
             },
-            { root: root as Element | null, threshold: th }
-        )
+            { threshold, root, rootMargin }
+        );
 
-        io.observe(el)
-        return () => io.disconnect()
-    }, [root, threshold, once, onEnter, onLeave])
-
-    return { ref: setRef, inView }
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [ref, threshold, root, rootMargin, once]);
 }

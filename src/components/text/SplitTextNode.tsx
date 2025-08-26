@@ -1,60 +1,43 @@
 // src/components/text/SplitTextNode.tsx
 'use client'
 import React, { useEffect, useRef } from 'react'
-import { gsap, SplitText } from '@/lib/gsap/gsap'
+import { gsap, SplitText } from '@/lib/anim/gsap'
 
 type Props = {
-    as?: keyof JSX.IntrinsicElements
-    children: React.ReactNode
-    animate?: boolean
-    stagger?: number
-    className?: string
-}
+    children: React.ReactNode;
+    className?: string;
+};
 
-export default function SplitTextNode({
-                                          as: Tag = 'span',
-                                          children,
-                                          animate = false,
-                                          stagger = 0.05,
-                                          className,
-                                      }: Props) {
-    const ref = useRef<HTMLElement>(null)
+export default function SplitTextNode({ children, className }: Props) {
+    const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const el = ref.current
-        if (!el) return
+        const el = ref.current;
+        if (!el) return;
 
-        // SplitType -> chars/words
-        const split = new (SplitText as any)(el, { types: 'chars,words' })
+        const split = new SplitText(el, { types: 'chars,words' });
 
-        // Enforce fake/real handoff (.n/.f) per char
+        // Enforce the .char > .n + .f DOM structure required by the CSS contract.
         split.chars.forEach((charEl: HTMLElement) => {
-            const n = document.createElement('span')
-            n.className = 'n'
-            n.textContent = charEl.textContent ?? ''
-            const f = document.createElement('span')
-            f.className = 'f'
-            f.textContent = charEl.textContent ?? ''
-            charEl.replaceChildren(n, f)
-            charEl.classList.add('char')
-        })
+            const originalText = charEl.textContent ?? '';
+            const n = document.createElement('span');
+            n.className = 'n';
+            n.textContent = originalText;
+            const f = document.createElement('span');
+            f.className = 'f';
+            f.textContent = originalText;
 
-        if (animate) {
-            gsap.from(split.chars, {
-                duration: 0.6,
-                yPercent: 100,
-                opacity: 0,
-                ease: 'power4.inOut',
-                stagger,
-                clearProps: 'transform,opacity',
-            })
-        }
+            charEl.innerHTML = '';
+            charEl.appendChild(n);
+            charEl.appendChild(f);
+        });
 
         return () => {
-            // Revert DOM back on unmount
-            (SplitText as any).revert(el)
-        }
-    }, [animate, stagger])
+            if (split.revert) {
+                split.revert();
+            }
+        };
+    }, [children]);
 
-    return <Tag ref={ref as any} className={className}>{children}</Tag>
+    return <div ref={ref} className={className}>{children}</div>;
 }
