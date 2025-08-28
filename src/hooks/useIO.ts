@@ -1,12 +1,17 @@
 // src/hooks/useIO.ts
 'use client'
-import { useEffect, useRef } from 'react'
 
-type Options = IntersectionObserverInit & { once?: boolean };
+import { useEffect, useRef } from 'react'
+import { dispatch } from '@/lib/anim/bus'
+
+type Options = IntersectionObserverInit & {
+    id?: string;
+    once?: boolean;
+};
 
 export function useIO<T extends Element>(
     ref: React.RefObject<T>,
-    { threshold = [0, 1], root = null, rootMargin = '0px', once = false }: Options = {}
+    { threshold = [0, 1], root = null, rootMargin = '0px', once = false, id }: Options = {}
 ) {
     const hasEnteredRef = useRef(false);
 
@@ -22,6 +27,9 @@ export function useIO<T extends Element>(
                         if (!hasEnteredRef.current) {
                             hasEnteredRef.current = true;
                             el.classList.add('stview');
+                            if (id) {
+                                dispatch('view:enter', { el, id });
+                            }
                         }
                         if (once) {
                             observer.unobserve(el);
@@ -36,5 +44,5 @@ export function useIO<T extends Element>(
 
         observer.observe(el);
         return () => observer.disconnect();
-    }, [ref, threshold, root, rootMargin, once]);
+    }, [ref, threshold, root, rootMargin, once, id]);
 }

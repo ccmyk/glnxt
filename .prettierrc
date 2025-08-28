@@ -1,0 +1,13 @@
+{
+  "tabWidth": 4,
+  "useTabs": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "semi": true,
+  "printWidth": 100,
+  "overrides": [
+    { "files": "*.mdx", "options": { "proseWrap": "always" } },
+    { "files": "*.xml", "options": { "tabWidth": 2 } },
+    { "files": "*.glsl", "options": { "tabWidth": 4 } }
+  ]
+}

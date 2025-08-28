@@ -1,4 +1,5 @@
 // src/lib/anim/bus.ts
+// This is the single, consolidated event bus for the application.
 'use client'
 
 type EventDetail = {

@@ -1,16 +1,20 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// eslint.config.mjs
+import next from 'eslint-config-next';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+export default [
+    // Base Next.js + React + TS rules
+    ...next,
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+    // Project-specific rules (optional)
+    {
+        rules: {
+            // Example: tweak rules as needed
+            "no-console": "warn",
+            "no-debugger": "error"
+        }
+    },
 
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+    // Keep this LAST to turn off ESLint style rules Prettier handles
+    eslintConfigPrettier
 ];
-
-export default eslintConfig;

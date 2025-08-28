@@ -1,39 +1,33 @@
 // src/app/layout.tsx
-import './globals.css'
-import type { ReactNode } from 'react'
-import { LenisProvider } from '@/components/providers/LenisProvider'
-import { GLProvider } from '@/components/gl/GLProvider'
-import { GLBackgroundCanvas } from '@/components/gl/GLBackgroundCanvas'
-import { GLLoaderCanvas } from '@/components/gl/GLLoaderCanvas'
-import { Mbg } from '@/components/layout/Mbg'
-import { Nav } from '@/components/Nav'
-import { Mouse } from '@/components/Mouse'
-import MouseProvider from '@/components/providers/MouseProvider'
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+import type { Metadata } from 'next'
+import Providers from './Providers'
+import Nav from '@/components/layout/Nav'
+import Loader from '@/components/layout/Loader'
+import Mbg from '@/components/layout/Mbg'
+import '@/styles/legacy/index.css'
+import '@/styles/globals.css'
+
+export const metadata: Metadata = {
+    title: 'glnxt | Eva Sánchez Migration',
+    description: 'Vanilla.js to Next.js Migration',
+}
+
+export default function RootLayout({
+                                       children,
+                                   }: Readonly<{
+    children: React.ReactNode;
+}>) {
     return (
-        <html className="D" lang="en">
+        <html lang="en">
         <body>
-        {/* DOM order contract: nav → #glBg → <Mbg/> → #content (loader via Portal) */}
-        <Nav />
-        <GLBackgroundCanvas id="glBg" /> {/* id=#glBg */}
-        <Mbg />
-
-        {/* App content */}
-        <LenisProvider>
-            <GLProvider>
-                <MouseProvider>
-                <main id="content">
-                    {children}
-                </main>
-                </MouseProvider>
-                <GLLoaderCanvas id="glLoader" />
-            </GLProvider>
-        </LenisProvider>
-
-        {/* Cursor layer */}
-        <Mouse />
+        <Providers>
+            <Loader />
+            <Nav />
+            <Mbg />
+            <main id="content">{children}</main>
+        </Providers>
         </body>
         </html>
-    )
+    );
 }

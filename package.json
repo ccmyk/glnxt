@@ -8,9 +8,10 @@
     "start": "next start",
     "type-check": "tsc --noEmit",
     "lint": "next lint",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "analyze": "ANALYZE=true next build",
-    "ai:print": "bash docs/ai/scripts/print-ai.sh",
-    "ai:pack": "bash docs/ai/scripts/pack-ai.sh",
     "msdf:gen": "pnpm dlx msdf-bmfont-xml -f json -o public/fonts/msdf/PPNeueMontreal-Medium -i public/fonts/charset.txt -m 1024,1024 -r 4 --smart-size --pot public/fonts/src/PPNeueMontreal-Medium.ttf",
     "msdf:verify": "node -e \"const fs=require('fs');['./public/fonts/msdf/PPNeueMontreal-Medium.png','./public/fonts/msdf/PPNeueMontreal-Medium.json'].forEach(p=>{if(!fs.existsSync(p)) {console.error('Missing',p);process.exit(1)}});console.log('MSDF assets OK')\""
   },
@@ -31,18 +32,25 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@prettier/plugin-xml": "^3.4.2",
     "@types/node": "^20.19.11",
     "@types/react": "^19.1.11",
     "@types/react-dom": "^19.1.7",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.34.0",
     "eslint-config-next": "15.4.7",
+    "eslint-config-prettier": "^10.1.8",
     "msdf-bmfont": "^1.1.0",
     "msdf-bmfont-xml": "^2.7.0",
     "postcss": "^8.5.6",
     "postcss-cli": "^11.0.1",
     "postcss-import": "^16.1.1",
     "postcss-nested": "^7.0.2",
+    "prettier": "^3.6.2",
+    "prettier-plugin-glsl": "^0.2.2",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "prettier-plugin-packagejson": "^2.5.19",
+    "prettier-plugin-sh": "^0.18.0",
     "typescript": "^5.9.2"
   }
 }

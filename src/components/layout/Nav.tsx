@@ -3,42 +3,99 @@
 
 import React, { useEffect } from 'react'
 import { useNavStore } from '@/stores/navStore'
+import DOMText from '@/components/text/DOMText'
 
-export default function Nav(){
-    const { open, setOpen } = useNavStore()
+export default function Nav() {
+    const { isMenuOpen, setMenuOpen } = useNavStore();
 
     useEffect(() => {
-        // mirror vanilla: add/remove act-menu on root for CSS to react
-        const root = document.documentElement
-        if (open) root.classList.add('act-menu')
-        else root.classList.remove('act-menu')
-        return () => root.classList.remove('act-menu')
-    }, [open])
+        const root = document.documentElement;
+        if (isMenuOpen) {
+            root.classList.add('act-menu');
+        } else {
+            root.classList.remove('act-menu');
+        }
+        // Cleanup function to remove the class if the component unmounts
+        return () => root.classList.remove('act-menu');
+    }, [isMenuOpen]);
 
     return (
         <nav className="nav">
-            <button
-                aria-label="Menu"
-                className="nav_burger"
-                onClick={() => setOpen(!open)}
-            >
-        <span className="nav_burger_i">
-          <span /><span /><span />
-        </span>
-            </button>
+            <div className="nav_blur" aria-hidden="true">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
 
-            <div className="nav_menu">
-                <div className="nav_menu_ops">
-                    <a className="ops_el simp" href="/projects"><span className="rel">Projects</span></a>
-                    <a className="ops_el simp" href="/about"><span className="rel">About</span></a>
-                    <a className="ops_el simp" href="/playground"><span className="rel">Playground</span></a>
+            <div className="nav_top c-vw">
+                <div className="nav_left">
+                    <a className="nav_logo" href="/">
+                        <DOMText>ES</DOMText>
+                    </a>
+                    <div className="nav_clock">
+                        <span className="nav_clock_p">
+              <DOMText>Now</DOMText>
+            </span>
+                        <span className="nav_clock_s">—</span>
+                        <span className="nav_clock_h">
+              <DOMText>00</DOMText>
+            </span>
+                        <span className="nav_clock_s">:</span>
+                        <span className="nav_clock_m">
+              <DOMText>00</DOMText>
+            </span>
+                        <span className="nav_clock_a">
+              <DOMText>AM</DOMText>
+            </span>
+                    </div>
                 </div>
-                <div className="cnt_lk">
-                    <a className="Awrite"><span className="iO" />Email<i><svg viewBox="0 0 7 7"><path d="M6.49 3.516H5.676V2.052l.072-.78-.036-.012-.768.864L.912 6.156.336 5.58l4.032-4.032.864-.768-.012-.036-.78.072H2.976V0h3.516v3.516Z" fill="black"/></svg></i></a>
+
+                <div className="nav_right">
+                    <div className="nav_menu_ops">
+                        <a href="/projects" className="ops_el">
+              <span className="rel">
+                <DOMText>Projects</DOMText>
+              </span>
+                            <span className="ghost" aria-hidden="true">
+                <DOMText>Projects</DOMText>
+              </span>
+                        </a>
+                        <a href="/about" className="ops_el">
+              <span className="rel">
+                <DOMText>About</DOMText>
+              </span>
+                            <span className="ghost" aria-hidden="true">
+                <DOMText>About</DOMText>
+              </span>
+                        </a>
+                    </div>
+
+                    {/* Mobile navigation burger menu */}
+                    <div className="nav_burger" onClick={() => setMenuOpen(!isMenuOpen)}>
+                        <div className="nav_burger_i">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="nav_blur" aria-hidden="true" />
+            {/* Mobile menu panel, which is animated by the .act-menu class */}
+            <div className="nav_menu">
+                <div className="nav_menu_ops">
+                    <a className="ops_el simp" href="/projects">
+                        <span className="rel">Projects</span>
+                    </a>
+                    <a className="ops_el simp" href="/about">
+                        <span className="rel">About</span>
+                    </a>
+                    <a className="ops_el simp" href="/playground">
+                        <span className="rel">Playground</span>
+                    </a>
+                </div>
+            </div>
         </nav>
-    )
+    );
 }

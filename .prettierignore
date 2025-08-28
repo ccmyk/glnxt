@@ -1,0 +1,7 @@
+node_modules
+.next
+.idea
+dist
+build
+coverage
+public/fonts/**/*.xml
