@@ -1,100 +1,142 @@
 // src/lib/gl/families/tt.ts
-import { Renderer, Camera, Transform, Geometry, Program, Mesh, Texture, Vec2 } from 'ogl'
-import { gsap } from '@/lib/gsap/gsap'
+// This file contains all the OGL logic for creating and managing an MSDF text mesh.
+// It is the direct translation of the vanilla project's `gl/💬/base.js` and `position.js`.
+import { Camera, Geometry, Mesh, Program, Texture, Transform } from 'ogl';
+import { ttVert, ttFrag } from './ttShaders';
+import { gsap } from '@/lib/anim/gsap';
+import { OGLAssets } from '@/components/gl/GLCanvas';
 
-export type TTOptions = {
-    text?: string
-    color?: number
-    atlasURL?: string        // MSDF atlas (png)
-}
+// Type definitions for the BMFont JSON structure
+type BMChar = { id: number; x: number; y: number; width: number; height: number; xoffset: number; yoffset: number; xadvance: number; };
+type BMFont = { chars: BMChar[]; common: { scaleW: number; scaleH: number; lineHeight: number }; info: { size: number } };
 
-export function createTT(gl: WebGLRenderingContext, opts: TTOptions = {}){
-    const scene = new Transform()
-    const camera = new Camera(gl as any)
-    camera.orthographic({ left:-1, right:1, bottom:-1, top:1, near:0, far:1 })
+export class OGLText {
+    mesh: Mesh;
+    program: Program;
+    scene: Transform;
+    camera: Camera;
 
-    // TODO: Swap for per-glyph quads with proper layout once atlas JSON is plugged.
-    const geom = new Geometry(gl as any, {
-        position: { size: 2, data: new Float32Array([-1,-.25, 1,-.25, 1,.25, -1,.25]) },
-        uv: { size: 2, data: new Float32Array([0,0, 1,0, 1,1, 0,1]) },
-        index: { data: new Uint16Array([0,1,2, 0,2,3]) },
-    })
+    // Uniforms that can be animated externally via GSAP
+    uniforms = {
+        uPower: { value: 0 },
+        uStart: { value: 1 }, // Start at 1 for the initial reveal
+        uKey: { value: -2 }, // Default state from vanilla code
+        uPowers: { value: new Float32Array(64).fill(0) },
+        uMouse: { value: [0, 0] },
+        uTime: { value: 0 },
+    };
 
-    const tex = new Texture(gl as any) // empty until loaded
+    constructor(gl: WebGL2RenderingContext, { atlasImage, atlasMeta, text }: OGLAssets & { text: string }) {
+        const texture = new Texture(gl, { image: atlasImage, flipY: false });
+        const { positions, uvs, ids, indices3, elementIndices, glyphCount } = this.buildGeometry(text, atlasMeta);
 
-    const program = new Program(gl as any, {
-        vertex: /* glsl */`
-      attribute vec2 position;
-      attribute vec2 uv;
-      varying vec2 vUv;
-      void main(){
-        vUv = uv;
-        gl_Position = vec4(position, 0.0, 1.0);
-      }
-    `,
-        fragment: /* glsl */`
-      precision highp float;
-      varying vec2 vUv;
-      uniform sampler2D tMap;
-      uniform float uPower;
-      uniform float uStart;
-      uniform float uColor;
-      // For now, fallback to a soft fade quad; replace with MSDF decode when atlas ready.
-      void main(){
-        float mask = smoothstep(0.0, 1.0, vUv.y);
-        float a = uStart * (0.6 + 0.4 * uPower);
-        gl_FragColor = vec4(vec3(uColor), a * mask);
-      }
-    `,
-        uniforms: {
-            tMap:   { value: tex },
-            uPower: { value: 0 },
-            uStart: { value: 1 },
-            uColor: { value: opts.color ?? 0.0 },
-            uMouse: { value: new Vec2(0,0) },
-            uTime:  { value: 0 },
-        },
-        transparent: true,
-        depthTest: false,
-        depthWrite: false,
-    })
+        const geometry = new Geometry(gl, {
+            position: { size: 3, data: positions },
+            uv: { size: 2, data: uvs },
+            id: { size: 1, data: ids },
+            index: { size: 3, data: indices3 }, // Note: 'index' is a vec3 attribute in your shader
+        });
+        geometry.setIndex(elementIndices);
 
-    const mesh = new Mesh(gl as any, { geometry: geom, program })
-    mesh.setParent(scene)
+        this.program = new Program(gl, {
+            vertex: ttVert,
+            fragment: ttFrag,
+            uniforms: {
+                tMap: { value: texture },
+                uCols: { value: 5.0 },
+                uColor: { value: 0.0 }, // Black text
+                uLength: { value: glyphCount },
+                ...this.uniforms,
+            },
+            transparent: true,
+            depthWrite: false,
+        });
 
-    // Optional: load atlas image (kept simple; swap for fetch + ImageBitmap if needed)
-    if (opts.atlasURL){
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = () => { tex.image = img }
-        img.src = opts.atlasURL
+        this.mesh = new Mesh(gl, { geometry, program: this.program });
+
+        this.scene = new Transform();
+        this.scene.addChild(this.mesh);
+        this.camera = new Camera(gl, { fov: 15 });
+        this.camera.position.z = 10; // Adjust Z based on mesh size
     }
 
-    // Drive uniforms with GSAP easing law (power2.inOut)
-    function rampPower(to: number, dur = 0.8){
-        gsap.to(program.uniforms.uPower, { value: to, duration: dur, ease: 'power2.inOut' })
+    // Animate the text into view (translates logic from vanilla `position.js`)
+    enter() {
+        gsap.to(this.uniforms.uStart, { value: 0, duration: 1.2, ease: 'power2.inOut' });
+        gsap.to(this.uniforms.uPower, { value: 1, duration: 2.0, ease: 'power2.inOut' });
     }
 
-    return {
-        scene, camera, program, mesh,
-        render(dt: number){
-            program.uniforms.uTime.value += dt
-        },
-        enter(){
-            program.uniforms.uStart.value = 1
-            rampPower(1, 0.8)
-        },
-        leave(){
-            rampPower(0, 0.6)
-        },
-        setMouse(nx: number, ny: number){
-            program.uniforms.uMouse.value.set(nx, ny)
-        },
-        resize(w: number, h: number){
-            (gl as any).viewport(0, 0, w, h)
-        },
-        dispose(){
-            try { program.remove() } catch{}
+    resize(width: number, height: number) {
+        this.camera.perspective({ aspect: width / height });
+    }
+
+    update(time: { t: number, dt: number }) {
+        this.uniforms.uTime.value = time.t;
+    }
+
+    dispose() {
+        // OGL will garbage collect, but explicit disposal is good practice
+    }
+
+    private buildGeometry(text: string, font: BMFont) {
+        const map = new Map<number, BMChar>();
+        for (const ch of font.chars) map.set(ch.id, ch);
+
+        const positions = [];
+        const uvs = [];
+        const ids = [];
+        const elementIndices = [];
+        const indices3 = [];
+
+        let xCursor = 0;
+        let vertIndex = 0;
+        let glyphIndex = 0;
+        const fontScale = 0.05; // Scale down to a manageable size in WebGL space
+
+        for (const char of text) {
+            const id = char.codePointAt(0)!;
+            const bmChar = map.get(id);
+            if (!bmChar) {
+                xCursor += font.info.size * 0.3 * fontScale;
+                continue;
+            }
+
+            const x = xCursor + bmChar.xoffset * fontScale;
+            const y = -bmChar.yoffset * fontScale;
+            const w = bmChar.width * fontScale;
+            const h = bmChar.height * fontScale;
+
+            positions.push(x, y, 0,  x + w, y, 0,  x + w, y - h, 0,  x, y - h, 0);
+
+            const u0 = bmChar.x / font.common.scaleW;
+            const v0 = bmChar.y / font.common.scaleH;
+            const u1 = (bmChar.x + w) / font.common.scaleW;
+            const v1 = (bmChar.y + h) / font.common.scaleH;
+            uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
+
+            ids.push(glyphIndex, glyphIndex, glyphIndex, glyphIndex);
+            indices3.push(glyphIndex, 0, 0, glyphIndex, 0, 0, glyphIndex, 0, 0, glyphIndex, 0, 0);
+
+            elementIndices.push(vertIndex, vertIndex + 1, vertIndex + 2, vertIndex, vertIndex + 2, vertIndex + 3);
+
+            vertIndex += 4;
+            glyphIndex++;
+            xCursor += bmChar.xadvance * fontScale;
         }
+
+        // Center the geometry
+        const textWidth = xCursor;
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i] -= textWidth / 2;
+        }
+
+        return {
+            positions: new Float32Array(positions),
+            uvs: new Float32Array(uvs),
+            ids: new Float32Array(ids),
+            indices3: new Float32Array(indices3),
+            elementIndices: new Uint16Array(elementIndices),
+            glyphCount: glyphIndex,
+        };
     }
 }

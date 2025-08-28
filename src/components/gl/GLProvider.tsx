@@ -1,75 +1,67 @@
 // src/components/gl/GLProvider.tsx
 'use client'
-
 import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import { useGLStore } from '@/stores/glStore'
 
-// Define the shape of a scene that can be registered with the provider.
-export type GLScene = {
-  id: string;
-  render: (time: { t: number, dt: number }) => void;
-  dispose?: () => void;
+export type OGLScene = {
+    id: string;
+    render: (time: { t: number, dt: number }) => void;
+    dispose?: () => void;
 };
 
-// Define the context value that will be provided to child components.
 type GLContextValue = {
-  registerScene: (scene: GLScene) => void;
-  unregisterScene: (id: string) => void;
+    registerScene: (scene: OGLScene) => void;
+    unregisterScene: (id: string) => void;
 };
 
 const GLContext = createContext<GLContextValue | null>(null);
 
-// Custom hook for easy consumption of the context.
 export function useGL() {
-  const ctx = useContext(GLContext);
-  if (!ctx) throw new Error('useGL must be used within a GLProvider');
-  return ctx;
+    const ctx = useContext(GLContext);
+    if (!ctx) throw new Error('useGL must be used within a GLProvider');
+    return ctx;
 }
 
-/**
- * This provider manages the single, global requestAnimationFrame loop for the entire application.
- * Individual GLCanvas components will register their render functions with this provider.
- */
 export function GLProvider({ children }: { children: React.ReactNode }) {
-  const scenes = useRef(new Map<string, GLScene>());
-  const rafId = useRef<number>();
+    const scenes = useRef(new Map<string, OGLScene>());
+    const rafId = useRef<number>();
+    const { setViewport, setDpr, setReady } = useGLStore();
 
-  useEffect(() => {
-    let lastTime = performance.now();
-    const loop = (currentTime: number) => {
-      const deltaTime = (currentTime - lastTime) / 1000;
-      lastTime = currentTime;
+    useEffect(() => {
+        // Update the store with viewport dimensions
+        const onResize = () => {
+            setViewport({ width: window.innerWidth, height: window.innerHeight });
+            setDpr(Math.min(window.devicePixelRatio, 2));
+        };
+        window.addEventListener('resize', onResize);
+        onResize(); // Initial call
 
-      // On each frame, call the render function for all registered scenes.
-      scenes.current.forEach((scene) => {
-        scene.render({ t: currentTime / 1000, dt: deltaTime });
-      });
+        let lastTime = performance.now();
+        const loop = (currentTime: number) => {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            scenes.current.forEach((scene) => scene.render({ t: currentTime / 1000, dt: deltaTime }));
+            rafId.current = requestAnimationFrame(loop);
+        };
+        rafId.current = requestAnimationFrame(loop);
 
-      rafId.current = requestAnimationFrame(loop);
-    };
+        setReady(true); // Signal that the GL provider is ready
 
-    rafId.current = requestAnimationFrame(loop);
+        return () => {
+            if (rafId.current) cancelAnimationFrame(rafId.current);
+            scenes.current.forEach(scene => scene.dispose?.());
+            scenes.current.clear();
+            window.removeEventListener('resize', onResize);
+        };
+    }, [setViewport, setDpr, setReady]);
 
-    // Cleanup function runs when the provider unmounts.
-    return () => {
-      if (rafId.current) {
-        cancelAnimationFrame(rafId.current);
-      }
-      // Dispose of all scenes to prevent memory leaks.
-      scenes.current.forEach(scene => scene.dispose?.());
-      scenes.current.clear();
-    };
-  }, []);
+    const value = useMemo(() => ({
+        registerScene: (scene: OGLScene) => scenes.current.set(scene.id, scene),
+        unregisterScene: (id: string) => {
+            scenes.current.get(id)?.dispose?.();
+            scenes.current.delete(id);
+        },
+    }), []);
 
-  // useMemo ensures the context value object doesn't change on every render.
-  const value = useMemo(() => ({
-    registerScene: (scene: GLScene) => {
-      scenes.current.set(scene.id, scene);
-    },
-    unregisterScene: (id: string) => {
-      scenes.current.get(id)?.dispose?.();
-      scenes.current.delete(id);
-    },
-  }), []);
-
-  return <GLContext.Provider value={value}>{children}</GLContext.Provider>;
+    return <GLContext.Provider value={value}>{children}</GLContext.Provider>;
 }
