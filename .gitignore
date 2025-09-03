@@ -60,3 +60,5 @@ cache/
 # Images/textures (generated or large)
 public/_cache/**
 public/_generated/**
+
+docs/

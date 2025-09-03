@@ -5,7 +5,7 @@ import Providers from './Providers'
 import Nav from '@/components/layout/Nav'
 import Loader from '@/components/layout/Loader'
 import Mbg from '@/components/layout/Mbg'
-import '@/styles/legacy/index.css'
+import '@/styles/index.css'  // New CSS orchestration file
 import '@/styles/globals.css'
 
 export const metadata: Metadata = {
