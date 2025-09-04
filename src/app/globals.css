@@ -1,7 +1,3 @@
 /* src/app/globals.css */
 @import '../styles/base.css';
-@import '../styles/layout.css';
 
-/* Later, bring in legacy:
-@import '../styles/legacy/legacy-index.css';
-*/
