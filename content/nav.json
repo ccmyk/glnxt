@@ -1,0 +1,50 @@
+{
+  "type": "nav",
+  "elements": [
+    {
+      "class": "top_nav",
+      "children": [
+        {
+          "class": "nav_left",
+          "children": [
+            {
+              "nav_logo": "CHRIS HALL",
+              "tag": "a",
+              "class": "Awrite actlink ivi"
+            }
+          ]
+        },
+        {
+          "class": "nav_right",
+          "nav_right_ops": [
+            {
+              "tag": "a",
+              "class": "Awrite Awrite-inv",
+              "label": "INDEX",
+              "url": "/index/",
+              "aria_label": "See all projects"
+            },
+            {
+              "tag": "a",
+              "class": "Awrite Awrite-inv",
+              "label": "ABOUT",
+              "url": "/about/"
+            },
+            {
+              "tag": "a",
+              "class": "Awrite Awrite-inv",
+              "label": "PLAYGROUND",
+              "url": "/playground/"
+            },
+            {
+              "tag": "a",
+              "class": "Awrite Awrite-inv ivi",
+              "label": "LET'S TALK",
+              "url": "mailto:chris@chrishall.io"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

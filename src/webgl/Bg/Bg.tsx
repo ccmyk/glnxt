@@ -124,3 +124,4 @@ export const Bg: React.FC<BgProps> = ({ className = '', onReady }) => {
   );
 };
 
+

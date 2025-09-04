@@ -1,40 +1,50 @@
-// src/components/providers/LenisProvider.tsx
-'use client'
+"use client";
+import React, { createContext, useContext, useEffect, useRef } from "react";
+import Lenis from "@studio-freight/lenis";
+import { useAnimationStore } from "@/stores/useAnimationStore";
 
-import { useEffect } from 'react'
+type LenisContextType = { lenis: Lenis | null };
+const LenisContext = createContext<LenisContextType>({ lenis: null });
 
-type Props = { children: React.ReactNode }
+export const useLenis = () => useContext(LenisContext);
 
-/**
- * Optional Lenis smooth-scroll wrapper.
- * If Lenis isn't installed, gracefully no-ops (native scroll).
- */
-export function LenisProvider({ children }: Props) {
-    useEffect(() => {
-        let lenis: any
-        let rafId: number | null = null
+export const LenisProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const ref = useRef<Lenis | null>(null);
+  const setScroll = useAnimationStore((s) => s.setScroll);
 
-        const start = async () => {
-            try {
-                const mod = await import('lenis')
-                const Lenis = mod.default
-                lenis = new Lenis({ smoothWheel: true, smoothTouch: false })
-                const raf = (t: number) => {
-                    lenis.raf(t)
-                    rafId = requestAnimationFrame(raf)
-                }
-                rafId = requestAnimationFrame(raf)
-            } catch {
-                // No Lenis available → do nothing (vanilla scroll)
-            }
-        }
+  useEffect(() => {
+    const lenis = new Lenis({
+      smoothWheel: true,
+      smoothTouch: false,
+      gestureOrientation: "vertical",
+      normalizeWheel: true,
+    });
+    ref.current = lenis;
 
-        start()
-        return () => {
-            if (rafId) cancelAnimationFrame(rafId)
-            if (lenis) lenis.destroy?.()
-        }
-    }, [])
+    let raf: number;
+    const loop = (t: number) => {
+      lenis.raf(t);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
 
-    return <>{children}</>
-}
+    const onScroll = (e: any) => {
+      setScroll({
+        y: e.scroll,
+        progress: e.progress,
+        velocity: e.velocity,
+        direction: e.direction,
+      });
+    };
+    lenis.on("scroll", onScroll);
+
+    return () => {
+      lenis.off("scroll", onScroll);
+      cancelAnimationFrame(raf);
+      lenis.destroy();
+      ref.current = null;
+    };
+  }, [setScroll]);
+
+  return <LenisContext.Provider value={{ lenis: ref.current }}>{children}</LenisContext.Provider>;
+};

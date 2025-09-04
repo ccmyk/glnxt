@@ -1,0 +1,140 @@
+{
+  "template": "home",
+  "id": "2",
+  "sections": [
+    {
+      "type": "hero",
+      "elements": [
+        {
+          "tag": "h2",
+          "class": "cnt_tt",
+          "children": [
+            {
+              "type": "Atitle",
+              "text": "Chris",
+              "data_attributes": { "temp": "tt", "l": "-0.022", "m": "5" }
+            },
+            {
+              "type": "Atitle",
+              "text": "Hall",
+              "data_attributes": { "temp": "tt", "l": "-0.016", "m": "5" }
+            }
+          ]
+        },
+        {
+          "tag": "h3",
+          "class": "tt3",
+          "content": "Art Director & Designer<br>Based in Los Angeles."
+        },
+        {
+          "tag": "h4",
+          "class": "Awrite",
+          "text": "PORTFOLIO_20/25",
+          "data_attributes": { "params": "1.6" }
+        },
+        {
+          "tag": "h4",
+          "class": "Awrite",
+          "text": "[Scroll to explore]",
+          "data_attributes": { "params": "1.6", "bucle": "1" }
+        },
+        {
+          "tag": "a",
+          "class": "Awrite",
+          "text": "LinkedIn",
+          "href": "https://www.linkedin.com/in/chrisryanhall/",
+          "data_attributes": { "params": "1.6", "clean": "0" }
+        },
+        {
+          "tag": "a",
+          "class": "Awrite",
+          "text": "read.cv",
+          "href": "https://read.cv/chrisryanhall",
+          "data_attributes": { "params": "1.6", "clean": "0" }
+        }
+      ]
+    },
+    {
+      "type": "home_prjs",
+      "title": {
+        "tag": "h2",
+        "class": "Atitle",
+        "text": "Featured works",
+        "data_attributes": { "temp": "tt", "oi": "2" }
+      },
+      "project_count_text": "003",
+      "projects": [
+        {
+          "id": "001",
+          "slug": "banjo",
+          "link_text": "SEE MORE",
+          "title": "Banjo_Soundscapes",
+          "featured_media": "/media/videos/00_eva_sanchez_paya_health_ecommerce_website.mp4"
+        },
+        {
+          "id": "002",
+          "slug": "ciclope-fest-website",
+          "link_text": "SEE MORE",
+          "title": "Ciclope Festival",
+          "featured_media": "/media/videos/01_eva_sanchez_ciclope_fest_website.mp4"
+        },
+        {
+          "id": "003",
+          "slug": "kids-agency-website",
+          "link_text": "SEE MORE",
+          "title": "Kids Agency Website",
+          "featured_media": "/media/videos/01_eva_sanchez_kids_agency_website.mp4"
+        }
+      ],
+      "view_all_button": {
+        "tag": "a",
+        "class": "Awrite Awrite-inv",
+        "text": "See index",
+        "href": "/index/"
+      }
+    },
+    {
+      "type": "home_about",
+      "title_1": {
+        "tag": "h2",
+        "class": "Atitle",
+        "text": "Interactive Designer,",
+        "data_attributes": { "oi": "7" }
+      },
+      "title_2": {
+        "tag": "h2",
+        "class": "Atitle",
+        "text": "also Speaker & Teacher",
+        "data_attributes": { "oi": "8" }
+      },
+      "description": "Enthusiastic about graphic design, typography, and the dynamic areas of motion and web-based animations. Specialized in translating brands into unique and immersive digital user experiences.",
+      "link": { "text": "Read more", "href": "/about/" },
+      "image": {
+        "src": "/media/images/00_eva_sanchez_abou_home_website-1366x2049.jpg",
+        "alt": "Interactive designer"
+      }
+    },
+    {
+      "type": "footer",
+      "cta": {
+        "tag": "a",
+        "class": "Atitle",
+        "text": "Get in touch",
+        "href": "mailto:chris@chrishall.io",
+        "data_attributes": {
+          "tt": "let’s talk",
+          "text": "Get in touch",
+          "oi": "10"
+        }
+      },
+      "social_links": [
+        { "text": "Instagram", "href": "https://www.instagram.com/getcolor_/" },
+        { "text": "Savee", "href": "https://savee.it/chrisryanhall" },
+        { "text": "linkedin", "href": "https://www.linkedin.com/in/chrisryanhall/" },
+        { "text": "dribbble", "href": "https://dribbble.com/chrisryanhall" },
+        { "text": "read.cv", "href": "https://read.cv/chrisryanhall" },
+        { "text": "behance", "href": "https://www.behance.net/chrisryanhall" }
+      ]
+    }
+  ]
+}

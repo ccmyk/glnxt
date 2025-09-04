@@ -1,33 +1,24 @@
-// src/app/layout.tsx
-
-import type { Metadata } from 'next'
-import Providers from './Providers'
-import Nav from '@/components/layout/Nav'
-import Loader from '@/components/layout/Loader'
-import Mbg from '@/components/layout/Mbg'
-import '@/styles/index.css'  // New CSS orchestration file
-import '@/styles/globals.css'
+import "./globals.css";
+import React from "react";
+import type { Metadata } from "next";
+import { LenisProvider } from "@/Providers/LenisProvider";
+import { MouseProvider } from "@/Providers/MouseProvider";
 
 export const metadata: Metadata = {
-    title: 'glnxt | Eva Sánchez Migration',
-    description: 'Vanilla.js to Next.js Migration',
-}
+  title: "Chris Hall",
+  description: "Portfolio",
+};
 
-export default function RootLayout({
-                                       children,
-                                   }: Readonly<{
-    children: React.ReactNode;
-}>) {
-    return (
-        <html lang="en">
-        <body>
-        <Providers>
-            <Loader />
-            <Nav />
-            <Mbg />
-            <main id="content">{children}</main>
-        </Providers>
-        </body>
-        </html>
-    );
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <LenisProvider>
+          <MouseProvider>
+            {children}
+          </MouseProvider>
+        </LenisProvider>
+      </body>
+    </html>
+  );
 }

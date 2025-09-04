@@ -142,3 +142,4 @@ function createMSDFGeometry(text: string) {
   return null; // Placeholder
 }
 
+

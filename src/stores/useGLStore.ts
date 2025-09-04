@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 interface GLState {
+  // OGL handles are optional now that Canvas owns the loop
   renderer: any | null;
   scene: any | null;
   camera: any | null;
@@ -22,7 +23,7 @@ interface GLState {
     updateViewport: (width: number, height: number) => void;
     registerComponent: (type: string, element: HTMLElement) => void;
     unregisterComponent: (type: string) => void;
-    setScene: (sceneName: string) => void;
+    setSceneName: (sceneName: string) => void;
     triggerEntrance: () => void;
     triggerExit: () => void;
     completeLoading: () => void;
@@ -62,7 +63,7 @@ export const useGLStore = create<GLState>((set, get) => ({
       components.delete(type);
       set({ components: new Map(components) });
     },
-    setScene: (sceneName) => set({ currentScene: sceneName }),
+    setSceneName: (sceneName) => set({ currentScene: sceneName }),
     triggerEntrance: () => {
       // Trigger entrance animations for all registered components
       const { components } = get();
