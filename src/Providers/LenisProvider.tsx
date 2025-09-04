@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useEffect, useRef } from "react";
-import Lenis from "@studio-freight/lenis";
+import Lenis from "lenis";
 import { useAnimationStore } from "@/stores/useAnimationStore";
 
 type LenisContextType = { lenis: Lenis | null };
@@ -13,19 +13,18 @@ export const LenisProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setScroll = useAnimationStore((s) => s.setScroll);
 
   useEffect(() => {
+    // See: https://github.com/darkroomengineering/lenis#settings
     const lenis = new Lenis({
+      // defaults are good; keep it explicit where useful
       smoothWheel: true,
-      smoothTouch: false,
       gestureOrientation: "vertical",
-      normalizeWheel: true,
+      // If you want touch to behave like inertial smooth scroll on iOS:
+      // syncTouch: true,
     });
     ref.current = lenis;
 
     let raf: number;
-    const loop = (t: number) => {
-      lenis.raf(t);
-      raf = requestAnimationFrame(loop);
-    };
+    const loop = (t: number) => { lenis.raf(t); raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop);
 
     const onScroll = (e: any) => {
@@ -33,7 +32,6 @@ export const LenisProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         y: e.scroll,
         progress: e.progress,
         velocity: e.velocity,
-        direction: e.direction,
       });
     };
     lenis.on("scroll", onScroll);

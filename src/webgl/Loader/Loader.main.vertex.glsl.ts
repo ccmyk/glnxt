@@ -1,0 +1,18 @@
+// Turbopack-friendly GLSL module (react-ogl/OGL compatible)
+// Original source: gl/loader/main.vertex.glsl
+const vert = String.raw`
+attribute vec2 uv;
+attribute vec2 position;
+
+uniform vec2 uResolution;
+
+varying vec2 vUv;
+
+void main() {
+  vUv = uv;
+
+  gl_Position = vec4(position, 0, 1);
+}
+`;
+
+export default vert;

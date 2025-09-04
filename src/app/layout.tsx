@@ -1,6 +1,7 @@
 import "./globals.css";
 import React from "react";
 import type { Metadata } from "next";
+import "lenis/dist/lenis.css"; // Lenis recommended stylesheet
 import { LenisProvider } from "@/Providers/LenisProvider";
 import { MouseProvider } from "@/Providers/MouseProvider";
 
