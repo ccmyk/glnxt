@@ -1,6 +1,3 @@
-// Turbopack-friendly GLSL module (react-ogl/OGL compatible)
-// Original source: gl/tt/msdf.vertex.glsl
-const vert = String.raw`
 #version 300 es
 precision highp float;
 #define attribute in
@@ -28,18 +25,20 @@ varying vec2 vUvR;
 varying vec3 vPos;
 varying vec3 vIndex;
 varying float vId;
+
 void main() {
     vUv = uv;
     vUvR = vec2(gl_VertexID << 1 & 2, gl_VertexID & 2);
 
     vPos = position;
-    
+
     vId = id;
     vIndex = index;
-    
-    if(vId == 3.){}
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}
-`;
 
-export default vert;
+    if(vId == 3.){
+
+    }
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+}

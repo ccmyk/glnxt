@@ -1,178 +1,244 @@
 'use client';
 
-import { useRef, useEffect, useMemo, useState } from 'react';
-import { useFrame } from 'react-ogl';
-import { Program, Texture, Vec2 } from 'ogl';
-import { gsap } from '@/lib/gsap';
-import { useGL } from '@/Providers/GLProvider';
-import { useMouse } from '@/Providers/MouseProvider';
-import { useGLStore } from '@/stores/useGLStore';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { useMesh, useProgram, useGeometry, useTexture, useFrame } from 'react-ogl';
+import { useGLStore } from '@/webgl/gl.store';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { gsap } from 'gsap';
+import { SplitText } from 'gsap/SplitText';
 
-// Import shaders
-import fragmentShader from './Tt.msdf.fragment.glsl';
-import vertexShader from './Tt.msdf.vertex.glsl';
+import { lerpArr, calcChars, lerp } from '@/types/splitText.d';
 
+import vertexShader from './Tt.vertex.msdf.glsl';
+import fragmentShader from './Tt.fragment.msdf.glsl';
+
+// We'll pass these as props now, instead of reading from `el.dataset`
 interface TtProps {
-  text: string;
-  className?: string;
-  onReady?: () => void;
+    el: HTMLElement;
+    text: string;
+    size: number;
+    letterSpacing: number;
+    white?: boolean;
 }
 
-export const Tt: React.FC<TtProps> = ({ text, className = '', onReady }) => {
-  const meshRef = useRef<any>();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { renderer, scene } = useGL();
-  const { mouseNormalized } = useMouse();
-  const { actions: glActions } = useGLStore();
-  const [isInView, setIsInView] = useState(false);
-  const [font, setFont] = useState<any>(null);
-  const [texture, setTexture] = useState<Texture | null>(null);
+export const Tt: React.FC<TtProps> = ({ el, text, size, letterSpacing, white }) => {
+    const { gl } = useGLStore();
 
-  // Integration: Intersection Observer (position.js logic)
-  const { ref: triggerRef } = useIntersectionObserver({
-    threshold: 0.1,
-    onChange: (inView) => {
-      setIsInView(inView);
-      if (inView) {
-        glActions.triggerEntrance();
-      } else {
-        glActions.triggerExit();
-      }
-    }
-  });
+    // Use refs for imperative OGL objects and GSAP timelines
+    const meshRef = useRef<any>(null);
+    const programRef = useRef<any>(null);
+    const animInRef = useRef<gsap.core.Timeline>();
+    const animOutRef = useRef<gsap.core.Timeline>();
 
-  // Integration: App lifecycle coordination
-  useEffect(() => {
-    if (renderer && scene) {
-      glActions.registerComponent('tt', containerRef.current!);
-    }
-  }, [renderer, scene, glActions]);
+    // Use state for declarative uniform values
+    const [key, setKey] = useState<number>(-2);
+    const [power, setPower] = useState<number>(1);
+    const [start, setStart] = useState<number>(1);
+    const [mousePos, setMousePos] = useState<number>(0);
+    const [mousePower, setMousePower] = useState<number>(1);
+    const [powers, setPowers] = useState<number[]>([]);
+    const [isReady, setIsReady] = useState(false);
 
-  // Integration: View-OGL coordination
-  useEffect(() => {
-    if (isInView && meshRef.current?.program) {
-      // Start entrance animation
-      const program = meshRef.current.program;
-      gsap.to(program.uniforms.uStart, {
-        value: 0,
-        duration: 1.0,
-        ease: "power4.inOut",
-        onComplete: () => {
-          program.uniforms.uKey.value = -1; // Set to idle state
+    const mouseEndRef = useRef<number>(0);
+    const lastXRef = useRef<number>(0);
+    const activeRef = useRef<number>(-1);
+    const stoptRef = useRef<number>(0);
+
+    // Intersection Observer hook to handle start/stop logic
+    const [targetRef, isIntersecting] = useIntersectionObserver({ threshold: [0] });
+
+    // Use `useEffect` to manage component side effects and GSAP timelines
+    useEffect(() => {
+        let splitText: SplitText | undefined;
+        if (el) {
+            splitText = new SplitText(el.querySelector('.Oiel') as HTMLElement, {
+                types: 'chars,words',
+            });
+            setIsReady(true);
         }
-      });
-    }
-  }, [isInView]);
 
-  // Integration: Event-OGL coordination - Mouse interaction
-  useEffect(() => {
-    if (!meshRef.current?.program) return;
+        // Initialize GSAP timelines
+        animInRef.current = gsap.timeline({ paused: true }).to(programRef.current.uniforms.uPower, {
+            value: 1,
+            duration: 0.36,
+            ease: 'power4.inOut',
+        }, 0);
 
-    const program = meshRef.current.program;
-    const handleMouseMove = (e: MouseEvent) => {
-      if (program.uniforms.uKey.value === -1) {
-        program.uniforms.uKey.value = 0; // Set to interactive state
-      }
-      
-      // Calculate character positions based on mouse
-      const rect = containerRef.current!.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const normalizedX = (x / rect.width) * 2 - 1;
-      
-      // Update mouse uniform
-      program.uniforms.uMouse.value.set(normalizedX, 0);
-      
-      // Update character powers based on mouse position
-      const chars = text.length;
-      const powers = new Array(chars).fill(0).map((_, i) => {
-        const charPos = (i / chars) * 2 - 1;
-        const distance = Math.abs(normalizedX - charPos);
-        return Math.max(0, 1 - distance * 2);
-      });
-      
-      program.uniforms.uPowers.value = powers;
+        animOutRef.current = gsap.timeline({ paused: true }).to(programRef.current.uniforms.uPower, {
+            value: 0,
+            duration: 0.6,
+            ease: 'none',
+            onComplete: () => {
+                setKey(-1);
+            },
+        }, 0);
+
+        // Clean up SplitText on component unmount
+        return () => {
+            splitText?.revert();
+            animInRef.current?.kill();
+            animOutRef.current?.kill();
+        };
+    }, [el]);
+
+    // Handle visibility based on Intersection Observer
+    useEffect(() => {
+        if (!programRef.current) return;
+        if (isIntersecting) {
+            if (activeRef.current === -1) {
+                gsap.timeline()
+                    .fromTo(programRef.current.uniforms.uStart, { value: 1 }, {
+                        value: 0,
+                        duration: 0.8,
+                        ease: 'power4.inOut',
+                    }, 0)
+                    .fromTo(programRef.current.uniforms.uPower, { value: 0.5 }, {
+                        value: 0,
+                        duration: 2,
+                        ease: 'power2.inOut',
+                    }, 0)
+                    .set(programRef.current.uniforms.uKey, {
+                        value: -1,
+                        onComplete: () => {
+                            el.querySelector('.Oiel')?.classList.add('act');
+                            stoptRef.current = 1;
+                            setKey(-1);
+                        },
+                    }, '>');
+            }
+            activeRef.current = 1;
+        } else {
+            if (activeRef.current < 1) return;
+            activeRef.current = 0;
+        }
+    }, [isIntersecting, el]);
+
+    // Use useMemo to prevent re-creating geometry unless text or sizes change
+    const textChars = el?.querySelector('.Oiel')?.querySelectorAll('.char');
+    const geometry = useMemo(() => {
+        if (!gl || !isReady || !textChars) return null;
+
+        // GSAP SplitText is a prerequisite for this logic
+        const chars = new SplitText(el.querySelector('.Oiel') as HTMLElement, { types: 'chars' }).chars;
+
+        const charWidths: number[] = [];
+        const charPositions: number[] = [];
+        let totalWidth = 0;
+
+        chars.forEach((char) => {
+            charWidths.push(char.clientWidth);
+            charPositions.push(totalWidth);
+            totalWidth += char.clientWidth;
+        });
+
+        const ogText = new Text({
+            gl,
+            font: '', // This font data should be provided via a prop or context
+            text: text,
+            align: 'center',
+            letterSpacing: letterSpacing,
+            size: size,
+            lineHeight: 1,
+        });
+
+        return new Geometry(gl, {
+            position: { size: 3, data: ogText.buffers.position },
+            uv: { size: 2, data: ogText.buffers.uv },
+            id: { size: 1, data: ogText.buffers.id },
+            index: { data: ogText.buffers.index },
+        });
+    }, [gl, isReady, textChars, text, letterSpacing, size]);
+
+    // Use react-ogl hooks to create and manage the WebGL mesh
+    const program = useProgram(gl, {
+        vertex: vertexShader,
+        fragment: fragmentShader.replaceAll('PITO', text.length.toString()),
+        uniforms: {
+            uTime: { value: 0 },
+            uKey: { value: key },
+            uPower: { value: power },
+            uPowers: { value: powers },
+            uCols: { value: 1.5 },
+            uStart: { value: start },
+            uColor: { value: white ? 1 : 0 },
+            tMap: { value: useTexture(gl, {
+                    src: '/public/PPNeueMontreal-Medium.png', // Assuming this is served from the public directory
+                    generateMipmaps: false,
+                })},
+            uMouse: { value: [0, 0] },
+            uWidth: { value: [] },
+            uHeight: { value: [] },
+        },
+        transparent: true,
+        cullFace: null,
+        depthWrite: false,
+    });
+
+    const mesh = useMesh(gl, { geometry, program });
+
+    useEffect(() => {
+        if (mesh) {
+            meshRef.current = mesh;
+            programRef.current = program;
+        }
+    }, [mesh, program]);
+
+    // Use useFrame for the animation loop, replacing the `update` method
+    useFrame(({ time }) => {
+        if (!meshRef.current || activeRef.current !== 1) return;
+
+        // Imperative GSAP logic is handled by a declarative `useRef`
+        mouseEndRef.current = lerp(mouseEndRef.current, mousePos, 0.06);
+
+        // Update uniforms declaratively via state or useRef values
+        programRef.current.uniforms.uMouse.value = [mouseEndRef.current, 0];
+        programRef.current.uniforms.uTime.value = time;
+
+        setPowers((prevPowers) => lerpArr(prevPowers, mousePowers, 0.03));
+    });
+
+    const mouseMoveHandler = (e: React.MouseEvent | React.TouchEvent) => {
+        stoptRef.current = 0;
+        animInRef.current?.play();
+        animOutRef.current?.pause();
+
+        const isTouch = 'touches' in e;
+        const lX = isTouch ? (e.touches[0]?.pageX - el.getBoundingClientRect().left) : e.nativeEvent.offsetX;
+
+        setPowers(calcChars(el, lX));
+        setMousePos(lX);
     };
 
-    const handleMouseLeave = () => {
-      if (program.uniforms.uKey.value === 0) {
-        program.uniforms.uKey.value = -1; // Return to idle state
-      }
+    const mouseLeaveHandler = (e: React.MouseEvent | React.TouchEvent) => {
+        const isTouch = 'touches' in e;
+        const lX = isTouch ? (e.touches[0]?.pageX - el.getBoundingClientRect().left) : e.nativeEvent.offsetX;
+
+        setPowers(calcChars(el, lX, lX < 60 ? 0.5 : -0.5));
+        animInRef.current?.pause();
+
     };
 
-    containerRef.current?.addEventListener('mousemove', handleMouseMove);
-    containerRef.current?.addEventListener('mouseleave', handleMouseLeave);
+    // Attach event listeners to the component's DOM element
+    useEffect(() => {
+        const ttEl = el.querySelector('.Oiel') as HTMLElement;
+        if (!ttEl) return;
 
-    return () => {
-      containerRef.current?.removeEventListener('mousemove', handleMouseMove);
-      containerRef.current?.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, [text, isInView]);
+        ttEl.addEventListener('mouseenter', mouseMoveHandler);
+        ttEl.addEventListener('mousemove', mouseMoveHandler);
+        ttEl.addEventListener('mouseleave', mouseLeaveHandler);
 
-  // Integration: Page-OGL coordination - Update loop
-  useFrame((state) => {
-    if (!meshRef.current || !texture) return;
+        return () => {
+            ttEl.removeEventListener('mouseenter', mouseMoveHandler);
+            ttEl.removeEventListener('mousemove', mouseMoveHandler);
+            ttEl.removeEventListener('mouseleave', mouseLeaveHandler);
+        };
+    }, [el]);
 
-    // Update uniforms
-    const program = meshRef.current.program;
-    program.uniforms.uTime.value = state.time * 1000;
-    program.uniforms.uMouse.value.set(mouseNormalized.x, mouseNormalized.y);
-    
-    // Integration: Coordinate with global time
-    glActions.updateTime(state.time, state.deltaTime);
-  });
-
-  // Integration: App lifecycle cleanup
-  useEffect(() => {
-    return () => {
-      glActions.unregisterComponent('tt');
-    };
-  }, [glActions]);
-
-  // TODO: Load MSDF font and create texture
-  // This maps to els.js asset loading logic
-
-  if (!renderer || !scene || !font || !texture) {
     return (
-      <div ref={containerRef} className={`tt-container ${className}`}>
-        <div ref={triggerRef} className="Oi">
-          <div className="cCover">
-            <span className="char">{text}</span>
-          </div>
+        <div ref={targetRef as React.Ref<HTMLDivElement>} className="gl-container">
+            {/* The canvas is rendered by the provider, we just need to provide a DOM node to observe */}
+            {/* The actual canvas element is rendered in a higher-level provider. This component
+          handles the logic and passes data to the OGL context. */}
         </div>
-      </div>
     );
-  }
-
-  return (
-    <div ref={containerRef} className={`tt-container ${className}`}>
-      <div ref={triggerRef} className="Oi">
-        <div className="cCover">
-          <span className="char">{text}</span>
-        </div>
-      </div>
-      
-      {/* OGL Canvas will be rendered by GLProvider */}
-      <mesh 
-        ref={meshRef}
-        geometry={createMSDFGeometry(font, text)}
-        program={createMSDFProgram(renderer.gl, texture, text)}
-        position={[0, 0, 0]}
-        scale={0.05}
-      />
-    </div>
-  );
 };
-
-// Helper functions for MSDF setup
-function createMSDFGeometry(font: any, text: string) {
-  // Implementation for MSDF geometry creation
-  // This would create proper MSDF geometry based on the font data
-  return null; // Placeholder
-}
-
-function createMSDFProgram(gl: WebGLRenderingContext, texture: Texture, text: string) {
-  // Implementation for MSDF program creation
-  // This would create the shader program with proper uniforms
-  return null; // Placeholder
-}

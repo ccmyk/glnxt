@@ -1,6 +1,3 @@
-// Turbopack-friendly GLSL module (react-ogl/OGL compatible)
-// Original source: gl/tt/msdf.fragment.glsl
-const frag = String.raw`
 #version 300 es
 precision highp float;
 #define varying in
@@ -20,6 +17,7 @@ uniform float uColor;
 uniform float uStart;
 uniform float uKey;
 uniform float uPowers[numTextures];
+
 varying vec2 vUv;
 varying vec2 vUvR;
 
@@ -33,13 +31,14 @@ float ripple(float uv, float time, float prog) {
     }
 
 void main() {
+
 float time = abs(sin(uTime * 0.002));
     float time2 = (sin(uTime * 0.001));
     float time3 = abs( sin(uTime * 0.001) ) ;
     float rippleUV = 0.;
     float cols = uCols;
     float startshit = 0.;
-    float halfv = (vUvR.y - 1.) * 7.; 
+    float halfv = (vUvR.y - 1.) * 7.;
     float halfanim = 0.;
     vec3 tex = vec3(0.);
 
@@ -53,38 +52,49 @@ float time = abs(sin(uTime * 0.002));
     float mPower = 0.;
 
     highp int index = int(vId);
-    if(uKey == -2.){
-      
+
+if(uKey == -2.){
+
       mPower = 1. - uStart;
       mPos = (uStart - 1.)*1. ;
-      startshit =  (( (halfv * .001)) * uStart);
+
+startshit =  (( (halfv * .001)) * uStart);
       sumac = (ripple(vUvR.y ,mPos, cols) * ( (.4  ) * ( 1. - mPower + (1. * uPower) ) ) );
       rippleUV = (vUv.x + (startshit)) + sumac;
       tex = texture2D(tMap, vec2(rippleUV, vUv.y) ).rgb;
-      
+
     }
     else if(uKey != -1.){
       time2 = uMouse.x * -2. ;
       time3 = .0;
       halfanim = 1.;
-      mPos = uPowers[index] * -2.;
+
+mPos = uPowers[index] * -2.;
           mPower = abs(uPowers[index] * (2. - abs(time2 * .5) ));
-          sumac = (ripple(vUvR.y ,mPos, cols) * ( (.2 * (1. - mPower)  ) * ( 1. - mPower  ) ) );
-          rippleUV = (vUv.x) + sumac;
+
+sumac = (ripple(vUvR.y ,mPos, cols) * ( (.2 * (1. - mPower)  ) * ( 1. - mPower  ) ) );
+
+rippleUV = (vUv.x) + sumac;
           tex = texture2D(tMap, vec2(rippleUV, vUv.y) ).rgb;
-    }
+
+}
     else if(uKey ==  -1.){
-      mPos = uPowers[index] * -2.;
+
+mPos = uPowers[index] * -2.;
           mPower = abs(uPowers[index] *(2. - abs(time2 * .5) ));
           sumac = (ripple(vUv.y ,mPos, cols) * ( (.2 * (1. - mPower)  ) * ( 1. - mPower  ) ) );
           rippleUV = (vUv.x) + sumac;
           tex = texture2D(tMap, vec2(rippleUV, vUv.y) ).rgb;
-    }
-    float signedDist = max(min(tex.r, tex.g), min(max(tex.r, tex.g), tex.b)) - 0.5;
+
+}
+
+float signedDist = max(min(tex.r, tex.g), min(max(tex.r, tex.g), tex.b)) - 0.5;
     float d = fwidth(signedDist);
     float alpha = smoothstep(-d, d, signedDist);
-    gl_FragColor.rgb = vec3(uColor);
-    gl_FragColor.a = alpha * (1. - uStart * 1.9);
+
+gl_FragColor.rgb = vec3(uColor);
+
+gl_FragColor.a = alpha * (1. - uStart * 1.9);
     if(uKey ==  -2.){
     gl_FragColor.a -= abs(sumac * 8.);
     }
@@ -92,3 +102,5 @@ float time = abs(sin(uTime * 0.002));
     gl_FragColor.a -= abs(sumac * 8.);
 
     }
+
+}

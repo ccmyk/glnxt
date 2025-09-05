@@ -11,7 +11,7 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 // Import shaders
 import fragmentShader from './TtF.msdf.fragment.glsl';
 import parentShader from './TtF.parent.fragment.glsl';
-import vertexShader from '../Tt/Tt.msdf.vertex.glsl'; // Shared vertex shader
+import vertexShader from '../Tt/Tt.vertex.msdf.glsl'; // Shared vertex shader
 
 interface TtFProps {
   text: string;
